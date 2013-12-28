@@ -1,0 +1,94 @@
+\documentclass[11pt, titlepage]{article}
+\usepackage[utf8]{inputenc}
+\usepackage[czech]{babel}
+\usepackage{a4wide}
+\usepackage{graphicx}
+\author{Martin Zadražil}
+\title{Semestrální práce z~UPS}
+
+\begin{document}
+
+\begin{titlepage}
+	\begin{center}
+		\includegraphics[width=10cm]{zculogo.ps}
+		\vskip 5cm
+		{\huge \bfseries Semestrální práce z~UPS} \\
+		\vskip 1cm
+		{ \large Martin Zadražil} \\
+		{ \large A11B0119K} \\
+		{ \large zadram1@gmail.com} \\
+		{ \large \today }
+	\end{center}
+\end{titlepage}
+
+\tableofcontents
+\newpage
+
+\section{Zadání}
+{\bf Chatovací systém.} Realizujte programy serveru a klienta pro chatování. Chatovaní server a klient bude podporovat přihlášení uživatele pod přezdívkou, komunikaci s ostatními uživateli, pouze s jedním definovaným uživatelem a odhlášení uživatele. Protokol bude obsahovat příkazy \texttt{LOGIN}, \texttt{LOGOUT}, \texttt{ALL\_MSG}, \texttt{PRIV\_MSG}, \texttt{USERS}, \texttt{PING} a odpovědi \texttt{OK} a \texttt{ERR}.
+
+\section{Vývojářská dokumentace}
+
+\subsection{Server}
+Server je napsaný v jazyce \textit{C} pod operačním systémem \textit{GNU Linux}, konkrétně distribucí \textit{Xubuntu 12.04 64-bit}, z čehož vyplývá použití unixových knihoven pro práci se sockety. Serverový program je proto nepřenositelný na platformu \textit{MS Windows}.
+Každému počítači, který se na server připojí je přiřazen socket, který je zároveň zařazen do množiny socketů. Tuto množinu socketů následně předávám funkci \texttt{select}, která hlídá, zda nejsou na socketech k dospozici nějaká data a pokud ano, zpracuje je. Tím je vyřešno neblokující spojení a program může obsluhovat více klientů najednou.
+Po obdržení dat na socketu server tato data parsuje na výskyt řídící instrukce a podle obdržené instrukce následně provádí oprace:
+
+\begin{itemize}
+ \item \texttt{PING}: Odesilateli pošle zpět signál \texttt{OK}
+ \item \texttt{LOGIN}: Každý uživatel je uložen ve struktuře, která obsahuje prvky \textbf{id}, \textbf{login} a \textbf{logged}. Po obdržení signálu \texttt{LOGIN} server uloží do prvku \textbf{login} příslušného uživatele řetězec následující za signálem \texttt{LOGIN} a do prvku \textbf{logged} délku tohoto řetězce v bajtech. Odesilateli pošle zpět signál \texttt{OK}.
+ \item \texttt{LOGOUT}: Odesilateli pošle zpět signál \texttt{OK} a následně ho odpojí a vynuluje jeho strukturu.
+ \item \texttt{ALL\_MSG}: V cyklu odešle všem přihlášeným uživatelům, tj. těm co mají prvek logged větší než 0, řetězec následující za signálem \texttt{ALL\_MSG}.
+ \item \texttt{USERS}: Odesilateli odešle seznam uživatelů oddělený čárkou.
+ \item \texttt{PRIV\_MSG}: V cyklu projde seznam přihlášených uživatelů a pokud najde uživatele, jehož login odpovídá řetězci za instrukcí \texttt{PRIV\_MSG} a pokud takového uživatele nalezne, pošle mu řetězec následující za instrukcí \texttt{PRIV\_MSG} a loginem. Odesilateli pak odešle signál \texttt{OK}. Pokud příjemce nenalezne, odešle odesilateli signál \texttt{ERR}. Zde může nastat problém. Máme-li uživatele Jan a Jana a zpráva bude určena pro Janu,bude signál vypadat takto: \texttt{PRIV\_MSGJanaTest}. Pokud nyní při iterování přes pole uživatelů dojdeme dříve k uživateli Jan než k uživatelce Jana, Jan obdrží zprávu aTest. Řešením by bylo mít uživatele seřazené sestupně dle délky loginu.
+\end{itemize}
+
+Jak klientská tak serverová část aplikace byla vyvíjena a testována ve vývojovém prostředí \textit{NetBeans 7.4} pod operačním systémem \textit{GNU Linux}, konkrétně distribucí \textit{Xubuntu 12.04 64-bit}, neboď jiným systémem nedisponuji.
+
+\subsection{Klient} 
+Klient je napsaný v jazyce Java. Skládá se ze dvou tříd. Třída MainWindow zajišťuje GUI, třída Comunicator řeší samotnou síťovou komunikaci. Třída Comunicator je odděděná od třídy Thread a v metodě run v nekonečné smyčce kontroluje, zda jsou v socketovém streamu nějaká data.
+
+\section{Uživatelská dokumentace}
+
+\subsection{Překlad a spuštění}
+
+\subsubsection{Server}
+V adresáři projektu otevřete terminál a spusťte příkaz make. Po spuštění vám make vytvoří v adresáři projektu dva nové adresáře: \textbf{build} a \textbf{dist}. V adresáři \textbf{dist/Debug/GNU-Linux-x86} naleznete spustitelný soubor, který spustíte příkazem \texttt{./upsserver}. Server loguje do souboru \textbf{trace.log}.
+
+\subsubsection{Klient}
+V adresáři projektu otevřete terminál a spusťe příkaz \texttt{ant run}. Poznámka: Je potřeba mít program \textit{ant} ve verzi 1.8 a vyšší.
+
+\subsection{Používání klienta}
+Do políčka IP vyplňte IP adresu serveru. Port není třeba řešit, jak klient tak server používá port 6200. Pokud je vyplněna IP adresa, můžete použít příkaz ping: v menu Chat vyberete položku Ping na server. Také se můžete přihlásit: do políčka Login vepíšete své přihlašovací jméno a kliknete na tlačítko Přihlásit se. Obě tyto akce připojí klienta k serveru. Pokud je klient připojený k serveru, můžete posílat zprávy nebo si pomocí příkazu v menu vyžádat aktuální seznam připojených a zalogovaných uživatelů.
+
+\section{Závěr}
+Práce se sítí na úrovni socketů je zajímavá, bohužel zejména kvůli nedostatku času je napsané řešení značně naivní.
+
+\subsection{Známé problémy}
+\begin{itemize}
+ \item Výše zmínění problém s adresováním uživatelů při posílání soukromých zpráv.
+ \item Po odhlášení se klient již neumí připojit a je třeba ho restartovat.
+ \item Server pracuje v kódování \textit{ASCII} a klient v \textit{Unicode}, soubor \textbf{trace.log} proto v některých částech obsahuje tzv. rozsypaný čaj.
+ \item Není rozumná možnost jak ukončit server nějakým signálem. Server se ukončí sám, pokud tři minuty neobdrží žádná data.
+\end{itemize}
+
+\subsection{Možná vylepšení}
+\begin{itemize}
+ \item Odstranění známých problémů.
+ \item Logovat do \textbf{trace.log} i čas požadavku
+ \item Důsledněji ošetřit chybové stavy na serveru i klientu.
+ \item Zobrazovat v klientovi odchozí zprávy.
+ \item Vysílat ze serveru signál, který řekne klientovi že si má stáhnout aktuální seznam uživatelů.
+ \item Barevně odlišit odchozí, příchozí a systémové zprávy.
+\end{itemize}
+
+\subsection{Seznam použité literatury}
+\begin{enumerate}
+ \item Seriál o socketech v C/C++ (\textsf{http://www.builder.cz/rubriky/c/c--/sokety-a-c--156186cz})
+ \item Pokračování seriálu o sockektech na root.cz (\textsf{http://www.root.cz/serialy/sokety-a-cc/})
+ \item Introduction to network functions in C (\textsf{http://shoe.bocks.com/net/})
+ \item C++ Reference (\textsf{http://www.cplusplus.com/reference/})
+ \item Programování v jazyku Java (\textsf{http://www.linuxsoft.cz/article\_list.php?id\_kategory=192})
+ \item Pavel Herout: Učebnice jazyka Java
+\end{enumerate}
+\end{document}
